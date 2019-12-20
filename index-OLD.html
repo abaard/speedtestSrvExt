@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="apple-touch-icon" sizes="57x57" href="/apple-icon-57x57.png">
+<link rel="apple-touch-icon" sizes="60x60" href="/apple-icon-60x60.png">
+<link rel="apple-touch-icon" sizes="72x72" href="/apple-icon-72x72.png">
+<link rel="apple-touch-icon" sizes="76x76" href="/apple-icon-76x76.png">
+<link rel="apple-touch-icon" sizes="114x114" href="/apple-icon-114x114.png">
+<link rel="apple-touch-icon" sizes="120x120" href="/apple-icon-120x120.png">
+<link rel="apple-touch-icon" sizes="144x144" href="/apple-icon-144x144.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/apple-icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-icon-180x180.png">
+<link rel="icon" type="image/png" sizes="192x192"  href="/android-icon-192x192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+<meta name="theme-color" content="#ffffff">
+<style>
+body {font-family: Arial;}
+
+/* Style the tab */
+.tab {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+
+/* Style the buttons inside the tab */
+.tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 10px 10px;
+    transition: 0.3s;
+    font-size: 16px;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+    background-color: #ddd;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+    background-color: #ccc;
+}
+
+/* Style the tab content */
+.tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+}
+
+/* Container holding the image and the text */
+.container {
+  position: relative;
+  text-align: left;
+  color: #4F4F4F;
+  padding: 6px 8px;
+}
+
+/* Bottom left text */
+.bottom-left {
+  position: absolute;
+  bottom: -12px;
+  left: 64px;
+}
+
+</style>
+</head>
+<body>
+<div class="container">
+<a href="https://wlanpi.com" target="_blank"><img src="favicon-96x96.png" alt="logo" style="width:64px;">
+  <div class="bottom-left"></a><h4>WLAN Pi v1.8.3</h4></div>
+</div>
+<div class="tab">
+  <button class="tablinks" onclick="openCity(event, 'full')">Speed Test</button>
+  <button class="tablinks" onclick="openCity(event, 'graph')">Speed Graph</button>
+  <button class="tablinks" onclick="javascript:window.location.port=2501"/>Kismet</buttton>
+<script>
+function launch(url) {
+    var base = window.location.protocol + "//" + window.location.hostname + ":2501" + url;
+    window.location.assign(base);
+}
+</script>
+  <button class="tablinks" onclick="location.href='downloads';"/>Downloads</button>
+  <button class="tablinks" onclick="location.href='profiler';"/>Profiler</button>
+  <button class="tablinks" onclick="window.open('https://wlanpi.com')"/>wlanpi.com</button>
+</div>
+
+<div id="full" class="tabcontent">
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no" />
+<meta charset="UTF-8" />
+<script type="text/javascript" src="speedtest.js"></script>
+<script type="text/javascript">
+function I(i){return document.getElementById(i);}
+//INITIALIZE SPEEDTEST
+var s=new Speedtest(); //create speedtest object
+s.setParameter("telemetry_level","basic"); //enable telemetry
+
+var meterBk=/Trident.*rv:(\d+\.\d+)/i.test(navigator.userAgent)?"#EAEAEA":"#80808040";
+var dlColor="#6060AA",
+	ulColor="#616161";
+var progColor=meterBk;
+
+//CODE FOR GAUGES
+function drawMeter(c,amount,bk,fg,progress,prog){
+	var ctx=c.getContext("2d");
+	var dp=window.devicePixelRatio||1;
+	var cw=c.clientWidth*dp, ch=c.clientHeight*dp;
+	var sizScale=ch*0.0055;
+	if(c.width==cw&&c.height==ch){
+		ctx.clearRect(0,0,cw,ch);
+	}else{
+		c.width=cw;
+		c.height=ch;
+	}
+	ctx.beginPath();
+	ctx.strokeStyle=bk;
+	ctx.lineWidth=12*sizScale;
+	ctx.arc(c.width/2,c.height-58*sizScale,c.height/1.8-ctx.lineWidth,-Math.PI*1.1,Math.PI*0.1);
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.strokeStyle=fg;
+	ctx.lineWidth=12*sizScale;
+	ctx.arc(c.width/2,c.height-58*sizScale,c.height/1.8-ctx.lineWidth,-Math.PI*1.1,amount*Math.PI*1.2-Math.PI*1.1);
+	ctx.stroke();
+	if(typeof progress !== "undefined"){
+		ctx.fillStyle=prog;
+		ctx.fillRect(c.width*0.3,c.height-16*sizScale,c.width*0.4*progress,4*sizScale);
+	}
+}
+function mbpsToAmount(s){
+	return 1-(1/(Math.pow(1.3,Math.sqrt(s))));
+}
+function format(d){
+    d=Number(d);
+    if(d<10) return d.toFixed(2);
+    if(d<100) return d.toFixed(1);
+    return d.toFixed(0);
+}
+
+//UI CODE
+var uiData=null;
+function startStop(){
+    if(s.getState()==3){
+		//speedtest is running, abort
+		s.abort();
+		data=null;
+		I("startStopBtn").className="";
+		initUI();
+	}else{
+		//test is not running, begin
+		I("startStopBtn").className="running";
+		s.onupdate=function(data){
+            uiData=data;
+		};
+		s.onend=function(aborted){
+            I("startStopBtn").className="";
+            updateUI(true);
+            if(!aborted){
+                //if testId is present, show sharing panel, otherwise do nothing
+                try{
+                    var testId=uiData.testId;
+                    if(testId!=null){
+                        var shareURL=window.location.href.substring(0,window.location.href.lastIndexOf("/"))+"/results/?id="+testId;
+                        I("resultsImg").src=shareURL;
+                        I("resultsURL").value=shareURL;
+                        I("testId").innerHTML=testId;
+                    }
+                }catch(e){}
+            }
+		};
+		s.start();
+	}
+}
+//this function reads the data sent back by the test and updates the UI
+function updateUI(forced){
+	if(!forced&&s.getState()!=3) return;
+	if(uiData==null) return;
+	var status=uiData.testState;
+	I("dlText").textContent=(status==1&&uiData.dlStatus==0)?"...":format(uiData.dlStatus);
+	drawMeter(I("dlMeter"),mbpsToAmount(Number(uiData.dlStatus*(status==1?oscillate():1))),meterBk,dlColor,Number(uiData.dlProgress),progColor);
+	I("ulText").textContent=(status==3&&uiData.ulStatus==0)?"...":format(uiData.ulStatus);
+	drawMeter(I("ulMeter"),mbpsToAmount(Number(uiData.ulStatus*(status==3?oscillate():1))),meterBk,ulColor,Number(uiData.ulProgress),progColor);
+	I("pingText").textContent=format(uiData.pingStatus);
+	I("jitText").textContent=format(uiData.jitterStatus);
+}
+function oscillate(){
+	return 1+0.02*Math.sin(Date.now()/100);
+}
+//update the UI every frame
+window.requestAnimationFrame=window.requestAnimationFrame||window.webkitRequestAnimationFrame||window.mozRequestAnimationFrame||window.msRequestAnimationFrame||(function(callback,element){setTimeout(callback,1000/60);});
+function frame(){
+	requestAnimationFrame(frame);
+	updateUI();
+}
+frame(); //start frame loop
+//function to (re)initialize UI
+function initUI(){
+	drawMeter(I("dlMeter"),0,meterBk,dlColor,0);
+	drawMeter(I("ulMeter"),0,meterBk,ulColor,0);
+	I("dlText").textContent="";
+	I("ulText").textContent="";
+	I("pingText").textContent="";
+	I("jitText").textContent="";
+}
+</script>
+<style type="text/css">
+	html,body{
+		border:none; padding:0; margin:0;
+		background:#FFFFFF;
+		color:#202020;
+	}
+	body{
+		text-align:center;
+		font-family:"Roboto",sans-serif;
+	}
+	h1{
+		color:#404040;
+	}
+	#startStopBtn{
+		display:inline-block;
+		margin:0 auto;
+		color:#6060AA;
+		background-color:rgba(0,0,0,0);
+		border:0.15em solid #6060FF;
+		border-radius:0.3em;
+		transition:all 0.3s;
+		box-sizing:border-box;
+		width:8em; height:3em;
+		line-height:2.7em;
+		cursor:pointer;
+		box-shadow: 0 0 0 rgba(0,0,0,0.1), inset 0 0 0 rgba(0,0,0,0.1);
+	}
+	#startStopBtn:hover{
+		box-shadow: 0 0 2em rgba(0,0,0,0.1), inset 0 0 1em rgba(0,0,0,0.1);
+	}
+	#startStopBtn.running{
+		background-color:#FF3030;
+		border-color:#FF6060;
+		color:#FFFFFF;
+	}
+	#startStopBtn:before{
+		content:"Start";
+	}
+	#startStopBtn.running:before{
+		content:"Abort";
+	}
+	#test{
+		margin-top:2em;
+		margin-bottom:12em;
+	}
+	div.testArea{
+		display:inline-block;
+		width:16em;
+		height:12.5em;
+		position:relative;
+		box-sizing:border-box;
+	}
+	div.testArea2{
+		display:inline-block;
+		width:14em;
+		height:7em;
+		position:relative;
+		box-sizing:border-box;
+		text-align:center;
+	}
+	div.testArea div.testName{
+		position:absolute;
+		top:0.1em; left:0;
+		width:100%;
+		font-size:1.4em;
+		z-index:9;
+	}
+	div.testArea2 div.testName{
+        display:block;
+        text-align:center;
+        font-size:1.4em;
+	}
+	div.testArea div.meterText{
+		position:absolute;
+		bottom:1.55em; left:0;
+		width:100%;
+		font-size:2.5em;
+		z-index:9;
+	}
+	div.testArea2 div.meterText{
+        display:inline-block;
+        font-size:2.5em;
+	}
+	div.meterText:empty:before{
+		content:"0.00";
+	}
+	div.testArea div.unit{
+		position:absolute;
+		bottom:2em; left:0;
+		width:100%;
+		z-index:9;
+	}
+	div.testArea2 div.unit{
+		display:inline-block;
+	}
+	div.testArea canvas{
+		position:absolute;
+		top:0; left:0; width:100%; height:100%;
+		z-index:1;
+	}
+	div.testGroup{
+		display:block;
+        margin: 0 auto;
+	}
+	#shareArea{
+		width:95%;
+		max-width:40em;
+		margin:0 auto;
+		margin-top:2em;
+	}
+	#shareArea > *{
+		display:block;
+		width:100%;
+		height:auto;
+		margin: 0.25em 0;
+	}
+	#privacyPolicy{
+        position:fixed;
+        top:2em;
+        bottom:2em;
+        left:2em;
+        right:2em;
+        overflow-y:auto;
+        width:auto;
+        height:auto;
+        box-shadow:0 0 3em 1em #000000;
+        z-index:999999;
+        text-align:left;
+        background-color:#FFFFFF;
+        padding:1em;
+	}
+	a.privacy{
+        text-align:center;
+        font-size:0.8em;
+        color:#808080;
+        display:block;
+	}
+	@media all and (max-width:40em){
+		body{
+			font-size:0.8em;
+		}
+	}
+</style>
+</head>
+<body>
+<h3>Network Speed Test</h3>
+<div id="testWrapper">
+	<div id="startStopBtn" onclick="startStop()"></div><br/>
+	<div id="test">
+		<div class="testGroup">
+			<div class="testArea2">
+				<div class="testName">Ping</div>
+				<div id="pingText" class="meterText" style="color:#AA6060"></div>
+				<div class="unit">ms</div>
+			</div>
+			<div class="testArea2">
+				<div class="testName">Jitter</div>
+				<div id="jitText" class="meterText" style="color:#AA6060"></div>
+				<div class="unit">ms</div>
+			</div>
+		</div>
+		<div class="testGroup">
+			<div class="testArea">
+				<div class="testName">Download</div>
+				<canvas id="dlMeter" class="meter"></canvas>
+				<div id="dlText" class="meterText"></div>
+				<div class="unit">Mbps</div>
+			</div>
+			<div class="testArea">
+				<div class="testName">Upload</div>
+				<canvas id="ulMeter" class="meter"></canvas>
+				<div id="ulText" class="meterText"></div>
+				<div class="unit">Mbps</div>
+			</div>
+		</div>
+	</div>
+	<a href="https://github.com/librespeed/speedtest">Source code</a>
+</div>
+</div>
+
+<div id="graph" class="tabcontent">
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <style type="text/css">
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            border: none;
+            text-align: center;
+        }
+
+        #startBtn {
+            display: inline-block;
+            border: 0.15em solid #000000;
+            padding: 0.3em 0.5em;
+            margin: 0.6em;
+            color: #000000;
+            text-decoration: none;
+        }
+        #chart1Area,
+        #chart2Area {
+            width: 100%;
+            max-width: 30em;
+            height: 10em;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+    <script src="Chart.bundle.min.js"></script> <!--THIS LIBRARY SUCKS!-->
+    <script src="speedtest.js"></script>
+    <script type="text/javascript">
+        var g = null
+        function runTest() {
+            var chart1ctx = document.getElementById('chart1Area').getContext('2d')
+            var chart2ctx = document.getElementById('chart2Area').getContext('2d')
+            var dlDataset = {
+                label: 'Download',
+                fill: false,
+                lineTension: 0.1,
+                backgroundColor: 'rgba(75,192,192,0.4)',
+                borderColor: 'rgba(75,192,192,1)',
+                borderCapStyle: 'butt',
+                borderDash: [],
+                borderDashOffset: 0.0,
+                borderJoinStyle: 'miter',
+                pointBorderColor: 'rgba(75,192,192,1)',
+                pointBackgroundColor: '#fff',
+                pointBorderWidth: 1,
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: 'rgba(75,192,192,1)',
+                pointHoverBorderColor: 'rgba(220,220,220,1)',
+                pointHoverBorderWidth: 2,
+                pointRadius: 1,
+                pointHitRadius: 10,
+                data: [0],
+                spanGaps: false
+            }
+            var ulDataset = {
+                label: 'Upload',
+                fill: false,
+                lineTension: 0.1,
+                backgroundColor: 'rgba(192,192,75,0.4)',
+                borderColor: 'rgba(192,192,75,1)',
+                borderCapStyle: 'butt',
+                borderDash: [],
+                borderDashOffset: 0.0,
+                borderJoinStyle: 'miter',
+                pointBorderColor: 'rgba(192,192,75,1)',
+                pointBackgroundColor: '#fff',
+                pointBorderWidth: 1,
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: 'rgba(192,192,75,1)',
+                pointHoverBorderColor: 'rgba(220,220,220,1)',
+                pointHoverBorderWidth: 2,
+                pointRadius: 1,
+                pointHitRadius: 10,
+                data: [0],
+                spanGaps: false
+            }
+            var pingDataset = {
+                label: 'Ping',
+                fill: false,
+                lineTension: 0.1,
+                backgroundColor: 'rgba(75,220,75,0.4)',
+                borderColor: 'rgba(75,220,75,1)',
+                borderCapStyle: 'butt',
+                borderDash: [],
+                borderDashOffset: 0.0,
+                borderJoinStyle: 'miter',
+                pointBorderColor: 'rgba(75,220,75,1)',
+                pointBackgroundColor: '#fff',
+                pointBorderWidth: 1,
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: 'rgba(75,220,75,1)',
+                pointHoverBorderColor: 'rgba(220,220,220,1)',
+                pointHoverBorderWidth: 2,
+                pointRadius: 1,
+                pointHitRadius: 10,
+                data: [],
+                spanGaps: false
+            }
+            var jitterDataset = {
+                label: 'Jitter',
+                fill: false,
+                lineTension: 0.1,
+                backgroundColor: 'rgba(220,75,75,0.4)',
+                borderColor: 'rgba(220,75,75,1)',
+                borderCapStyle: 'butt',
+                borderDash: [],
+                borderDashOffset: 0.0,
+                borderJoinStyle: 'miter',
+                pointBorderColor: 'rgba(220,75,75,1)',
+                pointBackgroundColor: '#fff',
+                pointBorderWidth: 1,
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: 'rgba(220,75,75,1)',
+                pointHoverBorderColor: 'rgba(220,220,220,1)',
+                pointHoverBorderWidth: 2,
+                pointRadius: 1,
+                pointHitRadius: 10,
+                data: [],
+                spanGaps: false
+            }
+
+            var chart1Options = {
+                type: 'line',
+                data: {
+                    datasets: [dlDataset, ulDataset]
+                },
+                options: {
+                    responsive: true,
+                    legend: {
+                        position: 'bottom'
+                    },
+                    scales: {
+                        xAxes: [{
+                            display: true,
+                            scaleLabel: {
+                                display: false
+                            },
+                            ticks: {
+                                beginAtZero: true
+                            }
+                        }],
+                        yAxes: [{
+                            display: true,
+                            scaleLabel: 'Speed',
+                            ticks: {
+                                beginAtZero: true
+                            }
+                        }]
+                    }
+                }
+            }
+            var chart2Options = {
+                type: 'line',
+                data: {
+                    datasets: [pingDataset, jitterDataset]
+                },
+                options: {
+                    responsive: true,
+                    legend: {
+                        position: 'bottom'
+                    },
+                    scales: {
+                        xAxes: [{
+                            display: true,
+                            scaleLabel: {
+                                display: false
+                            },
+                            ticks: {
+                                beginAtZero: true
+                            }
+                        }],
+                        yAxes: [{
+                            display: true,
+                            scaleLabel: 'Latency',
+                            ticks: {
+                                beginAtZero: true
+                            }
+                        }]
+                    }
+                }
+            }
+
+            var chart1 = new Chart(chart1ctx, chart1Options)
+            var chart2 = new Chart(chart2ctx, chart2Options)
+
+            document.getElementById('startBtn').style.display = 'none'
+            document.getElementById('testArea').style.display = ''
+            document.getElementById('abortBtn').style.display = ''
+            g=new Speedtest();
+            g.onupdate = function (data) {
+                var status = data.testState
+                if (status === 1 && Number(data.dlStatus) > 0) {
+                    for(var i=~~(20*Number(data.dlProgress));i<20;i++) chart1.data.datasets[0].data[i]=(Number(data.dlStatus))
+                    chart1.data.labels[chart1.data.datasets[0].data.length - 1] = ''
+                    chart1.update()
+                }
+                if (status === 3 && Number(data.ulStatus) > 0) {
+                    for(var i=~~(20*Number(data.ulProgress));i<20;i++) chart1.data.datasets[1].data[i]=(Number(data.ulStatus))
+                    chart1.data.labels[chart1.data.datasets[1].data.length - 1] = ''
+                    chart1.update()
+                }
+                if (status === 2 && Number(data.pingStatus) > 0) {
+                    chart2.data.datasets[0].data.push(Number(data.pingStatus))
+                    chart2.data.datasets[1].data.push(Number(data.jitterStatus))
+                    chart2.data.labels[chart2.data.datasets[0].data.length - 1] = ''
+                    chart2.data.labels[chart2.data.datasets[1].data.length - 1] = ''
+                    chart2.update()
+                }
+            }
+            g.onend=function(aborted){
+                document.getElementById('abortBtn').style.display = 'none'
+                document.getElementById('startBtn').style.display = ''
+                g = null
+                if (aborted) {
+                    document.getElementById('testArea').style.display = 'none'
+                }
+            }
+            g.start();
+        }
+        function abortTest() {
+            if (g) g.abort();
+        }
+    </script>
+</head>
+
+<body>
+    <h3>Speed Test Graph</h3>
+    <div id="testArea" style="display:none">
+        <h4>Throughput</h4>
+        <canvas id="chart1Area"></canvas>
+        <h4>Latency</h4>
+        <canvas id="chart2Area"></canvas>
+        <br/>
+        <a href="javascript:abortTest()" id="abortBtn">Abort</a>
+    </div>
+    <a href="javascript:runTest()" id="startBtn">Start</a>
+    <br/><br/> Charts by <a href="http://www.chartjs.org/">Chart.js</a><br/><br/><a href="https://github.com/librespeed/speedtest">Source code</a>
+</body>
+</html>
+</div>
+
+<script>
+function openCity(evt, cityName) {
+    var i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(cityName).style.display = "block";
+    evt.currentTarget.className += " active";
+}
+</script>
+     
+</body>
+</html> 
